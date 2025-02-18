@@ -31,6 +31,7 @@ import type {
 import { HighlightLayer } from "./HighlightLayer";
 import { MouseSelection } from "./MouseSelection";
 import { TipContainer } from "./TipContainer";
+import PdfPageIndicator from "./PdfPageIndicator";
 
 export type T_ViewportHighlight<T_HT> = { position: Position } & T_HT;
 
@@ -49,6 +50,8 @@ interface State<T_HT> {
   tipChildren: JSX.Element | null;
   isAreaSelectionInProgress: boolean;
   scrolledToHighlightId: string;
+  totalPages: number;
+  currentPage: number;
 }
 
 interface Props<T_HT> {
@@ -98,6 +101,8 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     tip: null,
     tipPosition: null,
     tipChildren: null,
+    totalPages: 0,
+    currentPage: 1
   };
 
   viewer!: PDFViewer;
@@ -191,6 +196,8 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     this.viewer.setDocument(pdfDocument);
 
     this.attachRef(eventBus);
+      
+    this.setState({ totalPages: pdfDocument.numPages });
   }
 
   componentWillUnmount() {
@@ -552,10 +559,26 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     }
   };
 
+  private handleScroll = () => {
+    const { pdfDocument } = this.props;
+    const scrollTop = this.containerNodeRef.current?.scrollTop || 0;
+    const pageHeight = this.containerNodeRef.current?.clientHeight || 0;
+  
+    // Calculate the current page based on scroll position
+    const currentPage = Math.ceil(scrollTop / pageHeight) + 1; // +1 because pages are 1-indexed
+  
+    // Ensure currentPage does not exceed totalPages
+    if (currentPage <= pdfDocument.numPages) {
+      this.setState({ currentPage });
+    }
+  };
+
   debouncedScaleValue: () => void = debounce(this.handleScaleValue, 500);
 
   render() {
     const { onSelectionFinished, enableAreaSelection } = this.props;
+    const { totalPages } = this.state;
+    const currentPage = this.viewer?.currentPageNumber || 0;
 
     return (
       <div onPointerDown={this.onMouseDown}>
@@ -563,9 +586,11 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
           ref={this.containerNodeRef}
           className={styles.container}
           onContextMenu={(e) => e.preventDefault()}
+          onScroll={this.handleScroll}
         >
           <div className="pdfViewer" />
           {this.renderTip()}
+          <PdfPageIndicator currentPage={currentPage} totalPages={totalPages} />
           {typeof enableAreaSelection === "function" ? (
             <MouseSelection
               onDragStart={() => this.toggleTextSelection(true)}
