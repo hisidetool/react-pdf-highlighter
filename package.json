@@ -1,6 +1,6 @@
 {
   "name": "@hisidetool/react-pdf-highlighter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Set of React components for PDF annotation",
   "author": "Felipe Buscaglia <felipe.buscaglia@sidetool.co>",
   "license": "MIT",
